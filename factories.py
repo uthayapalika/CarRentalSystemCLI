@@ -4,7 +4,7 @@ from models.booking_model import BookingModel
 from models.payment_model import PaymentModel
 from models.maintenance_model import MaintenanceModel
 from models.vehicle_category_model import VehicleCategoryModel
-
+from models.user_model import UserModel
 
 class ModelFactory:
     """Factory Method for creating model instances"""
@@ -24,5 +24,7 @@ class ModelFactory:
             return PaymentModel(db)
         elif model_type == "maintenance":
             return MaintenanceModel(db)
+        elif model_type == "user":
+            return UserModel(db)
         else:
             raise ValueError(f"Unknown model type: {model_type}")

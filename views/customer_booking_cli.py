@@ -1,4 +1,4 @@
-# views/customer_booking_cli.py (Updated show method with debug)
+# views/customer_booking_cli.py
 """
 CLI Customer Booking View
 """
@@ -22,12 +22,6 @@ class CustomerBookingCLI:
     def show(self):
         """Show booking form"""
         if not self.load_vehicle():
-            return
-        
-        # Debug: Check if customer_id is valid
-        if not self.customer_id:
-            self.parent.print_error("❌ No customer profile found. Please contact support.")
-            self.parent.get_input("\nPress Enter to continue...")
             return
         
         while True:
@@ -106,7 +100,6 @@ class CustomerBookingCLI:
             print()
             
             print("  Booking Summary:")
-            print(f"  Customer ID: {self.customer_id}")  # Debug: Show customer_id
             print(f"  Vehicle:    {self.vehicle['make']} {self.vehicle['model']}")
             print(f"  Dates:      {start_date} to {end_date}")
             print(f"  Days:       {days}")
@@ -134,10 +127,21 @@ class CustomerBookingCLI:
     def load_vehicle(self):
         """Load vehicle details"""
         try:
-            from controllers.customer_booking_controller import CustomerBookingController
+            conn = self.db.get_connection()
+            cursor = conn.cursor()
             
-            controller = CustomerBookingController(self.db)
-            self.vehicle = controller.get_vehicle_details(self.vehicle_id)
+            cursor.execute("""
+                SELECT 
+                    v.*,
+                    vc.name as category_name,
+                    vc.late_fee_rate
+                FROM vehicles v
+                LEFT JOIN vehicle_categories vc ON v.category_id = vc.id
+                WHERE v.id = ? AND v.status = 'available'
+            """, (self.vehicle_id,))
+            
+            self.vehicle = cursor.fetchone()
+            cursor.close()
             
             if not self.vehicle:
                 self.parent.print_error("Vehicle not found or not available.")
@@ -160,9 +164,6 @@ class CustomerBookingCLI:
         """Submit booking request"""
         try:
             from controllers.customer_booking_controller import CustomerBookingController
-            
-            # Debug: Print customer_id before submission
-            print(f"  Debug: Submitting booking with customer_id: {self.customer_id}")
             
             controller = CustomerBookingController(self.db)
             success, message, booking_ref = controller.create_booking(
